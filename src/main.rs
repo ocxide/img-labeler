@@ -1,13 +1,40 @@
 use std::{fs, io::Cursor, path::PathBuf};
 
+use clap::Parser;
 use image::{GenericImageView, Rgba};
 
-fn main() {
-    let cargo_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+#[derive(clap::Parser)]
+pub struct Cli {
+    /// Path to the image
+    #[clap(long)]
+    pub source: PathBuf,
 
-    let filedir = cargo_dir.join("static/islands.png");
-    let filebuf = fs::read(filedir).expect("to read file");
-    let font = fs::read(cargo_dir.join("Bitter-Regular.ttf")).expect("to read font");
+    /// Path to the output image file
+    #[clap(long, short = 'o')]
+    pub output: PathBuf,
+
+    /// Text to add to the bottom of the image
+    #[clap(long, short = 't')]
+    pub title: String,
+
+    /// Path to the font
+    #[clap(long, short = 'f')]
+    pub font: Option<PathBuf>,
+}
+
+fn main() {
+    let Cli {
+        source,
+        title,
+        output,
+        font,
+    } = Cli::parse();
+
+    let filebuf = fs::read(source).expect("to read file");
+
+    let font_src = font
+        .unwrap_or_else(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("Bitter-Regular.ttf"));
+    let font = fs::read(font_src).expect("to read font");
     let font = ab_glyph::FontVec::try_from_vec(font).expect("to be valid font");
 
     let orignal_pic =
@@ -15,9 +42,8 @@ fn main() {
 
     let (original_width, orignal_height) = orignal_pic.dimensions();
 
-    const TEXT: &str = "Islands";
     let scale = ab_glyph::PxScale { x: 48.0, y: 48.0 };
-    let (text_width, text_height) = imageproc::drawing::text_size(scale, &font, TEXT);
+    let (text_width, text_height) = imageproc::drawing::text_size(scale, &font, title.as_str());
 
     const Y_PADDING: u32 = 6;
 
@@ -65,9 +91,9 @@ fn main() {
             text_pos_h,
             scale,
             &font,
-            TEXT,
+            title.as_str(),
         );
     };
 
-    img.save(cargo_dir.join("static/thumbnail.png")).expect("to save");
+    img.save(output).expect("to save");
 }
