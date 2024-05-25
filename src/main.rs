@@ -4,6 +4,7 @@ use clap::Parser;
 use image::{GenericImageView, Rgba};
 
 #[derive(clap::Parser)]
+#[command(version, about, long_about = None)]
 pub struct Cli {
     /// Path to the image
     #[clap(long)]
